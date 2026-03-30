@@ -1,0 +1,320 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Job Log</title>
+    <style>
+        .search-container {
+            position: relative;
+            display: inline-block;
+        }
+        #jobSearch, .employee-search, .subjob-search, #dataEntryEmployeeSearch {
+            width: 200px;
+            padding: 5px;
+        }
+        #jobResults, .employee-results, .subjob-results, #dataEntryEmployeeResults {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            border: 1px solid #ccc;
+            border-top: none;
+            max-height: 150px;
+            overflow-y: auto;
+            background: white;
+            z-index: 1000;
+            display: none;
+        }
+        #jobResults div, .employee-results div, .subjob-results div, #dataEntryEmployeeResults div {
+            padding: 8px;
+            cursor: pointer;
+        }
+        #jobResults div:hover, .employee-results div:hover, .subjob-results div:hover, #dataEntryEmployeeResults div:hover {
+            background: #eee;
+        }
+        #existingDates {
+            margin-left: 5px;
+            padding: 5px;
+        }
+        .read-only {
+            background-color: #f0f0f0;
+            color: #666;
+        }
+        .read-only input, .read-only select {
+            background-color: #e8e8e8;
+            border: none;
+            pointer-events: none;
+        }
+        .read-only .search-container input {
+            background-color: #e8e8e8;
+        }
+        .data-entry-section {
+            background-color: #e8f4f8;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            border: 2px solid #4a90e2;
+            display: inline-block;
+        }
+        .data-entry-section label {
+            font-weight: bold;
+            color: #2c5aa0;
+        }
+        .error-message {
+            color: red;
+            margin: 10px 0;
+            display: none;
+        }
+        .success-message {
+            color: green;
+            margin: 10px 0;
+            display: none;
+        }
+        /* Date range styles */
+        .date-section {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f5f5f5;
+            border-radius: 5px;
+            display: inline-block;
+        }
+        .date-mode-toggle {
+            margin-bottom: 10px;
+        }
+        .date-mode-toggle label {
+            margin-right: 15px;
+            cursor: pointer;
+        }
+        .date-range-inputs {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .date-range-inputs input[type="date"] {
+            padding: 5px;
+        }
+        .date-input-group {
+            display: flex;
+            flex-direction: column;
+        }
+        .date-input-group label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 2px;
+        }
+        .hidden {
+            display: none !important;
+        }
+        .clear-dates-btn {
+            padding: 5px 10px;
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        .clear-dates-btn:hover {
+            background-color: #5a6268;
+        }
+                .hours-dropdown, .ot-dropdown {
+            position: relative;
+        }
+
+        .hours-suggestion-dropdown, .ot-suggestion-dropdown {
+            position: absolute;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            z-index: 1000;
+            min-width: 150px;
+            margin-top: 2px;
+        }
+
+        .suggestion-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+        }
+
+        .suggestion-item:hover {
+            background-color: #f0f0f0;
+        }
+
+        .suggestion-item:last-child {
+            border-bottom: none;
+        }
+        input[type="number"]::placeholder {
+            color: #999;
+            opacity: 0.7;
+        }
+
+        
+        
+        
+        /*  */
+        .btn-small {
+        padding: 2px 6px;
+        font-size: 12px;
+        cursor: pointer;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        background-color: #f8f9fa;
+        margin-right: 2px;
+        min-width: 24px;
+        height: 24px;
+        line-height: 1;
+        }
+
+        .btn-small:hover {
+            background-color: #e9ecef;
+        }
+
+        /* Save button - green */
+        .btn-save {
+            background-color: #d4edda;
+            border-color: #28a745;
+            color: #155724;
+        }
+
+        .btn-save:hover {
+            background-color: #c3e6cb;
+        }
+
+        /* Delete/Remove button - red */
+        .btn-delete {
+            background-color: #f8d7da;
+            border-color: #dc3545;
+            color: #721c24;
+        }
+
+        .btn-delete:hover {
+            background-color: #f5c6cb;
+        }
+
+        /* Edit button - blue */
+        button[onclick^="enableEdit"] {
+            background-color: #d1ecf1;
+            border-color: #17a2b8;
+            color: #0c5460;
+        }
+
+        button[onclick^="enableEdit"]:hover {
+            background-color: #bee5eb;
+        }
+
+        /* Done button - gray */
+        button[onclick^="saveRowEdit"] {
+            background-color: #e2e3e5;
+            border-color: #6c757d;
+            color: #383d41;
+        }
+
+        button[onclick^="saveRowEdit"]:hover {
+            background-color: #d6d8db;
+        }
+
+        /*  */
+
+      
+    </style>
+</head>
+<body>
+    <h1>Job Log</h1>
+
+    <div id="errorMsg" class="error-message"></div>
+    <div id="successMsg" class="success-message"></div>
+
+    <!-- Job Search -->
+    <div>
+        <label>Job:</label>
+        <div class="search-container">
+            <input type="text" id="jobSearch" placeholder="Search job name or ID..." autocomplete="off">
+            <div id="jobResults"></div>
+        </div>
+    </div>
+
+    <!-- Data Entry Employee -->
+    <div class="data-entry-section" style="margin-top: 10px;">
+        <label>Data Entry Employee:</label>
+        <div class="search-container">
+            <input type="text" id="dataEntryEmployeeSearch" placeholder="Search your name..." autocomplete="off">
+            <div id="dataEntryEmployeeResults"></div>
+        </div>
+        <small style="color: #666; display: block; margin-top: 5px;">
+            Your Employee ID will be saved as the Form ID
+        </small>
+    </div>
+
+    <!-- Date Selection Section -->
+    <div class="date-section">
+        <div class="date-mode-toggle">
+            <label>
+                <input type="radio" name="dateMode" value="single" checked onchange="onDateModeChange()">
+                Single Day
+            </label>
+            <label>
+                <input type="radio" name="dateMode" value="range" onchange="onDateModeChange()">
+                Date Range
+            </label>
+        </div>
+
+        <!-- Single Date Input -->
+        <div id="singleDateContainer">
+            <label>Date:</label>
+            <input type="date" id="workDate" onchange="onSingleDateChange()">
+            <select id="existingDates" onchange="onExistingDateSelect(this.value)">
+                <option value="">-- Existing Dates --</option>
+            </select>
+        </div>
+
+        <!-- Date Range Inputs -->
+        <div id="dateRangeContainer" class="hidden">
+            <div class="date-range-inputs">
+                <div class="date-input-group">
+                    <label>Start Date</label>
+                    <input type="date" id="startDate" onchange="onDateRangeChange()">
+                </div>
+                <span>to</span>
+                <div class="date-input-group">
+                    <label>End Date</label>
+                    <input type="date" id="endDate" onchange="onDateRangeChange()">
+                </div>
+                <button class="clear-dates-btn" onclick="clearDateRange()">Clear</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Schedules -->
+    <div id="scheduleSection" style="margin-top:20px;">
+        <h2 id="scheduleHeader">Schedules</h2>
+        <button onclick="addRow()">Add Row</button>
+        <button onclick="saveAll()">Save All</button>
+
+        <table border="1" cellpadding="5" style="margin-top:10px;">
+            <thead>
+                <tr>
+                    <th>Employee</th>
+                    <th>Subjob</th>
+                    <th>Qualified</th>
+                    <th>Start</th>
+                    <th>End</th>
+                    <th>Lunch (hrs)</th>
+                    <th>Hours</th>
+                    <th>OT</th>
+                    <th>Description</th>
+                    <th>Work Date</th>
+                    <th>Action</th>
+                    <th>Form ID<br><small>(Data Entry By)</small></th>
+                </tr>
+            </thead>
+            <tbody id="scheduleBody"></tbody>
+        </table>
+    </div>
+
+    <!-- Load the external JavaScript file -->
+    <script src="{{ url_for('static', filename='js/schedule.js') }}"></script>
+    <div style="height: 300px;"></div>
+</body>
+</html>
